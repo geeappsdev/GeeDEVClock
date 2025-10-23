@@ -1,0 +1,5 @@
+{
+  "name": "GeeClock AI",
+  "description": "An advanced clock and timer application supercharged with Gemini AI. Features an intelligent chatbot with search grounding, an AI-powered image editor, and smart timer suggestions to enhance your productivity and creativity.",
+  "requestFramePermissions": []
+}
