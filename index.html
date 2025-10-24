@@ -44,796 +44,896 @@
         }
       }
     </script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-    <script type="module">
-        import { GoogleGenAI } from 'https://esm.run/@google/genai';
-        window.GoogleGenAI = GoogleGenAI;
-    </script>
-  </head>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0"
+  }
+}
+</script>
+</head>
   <body class="bg-background text-text-primary font-sans transition-colors duration-300">
     <div id="root"></div>
-    <script type="text/babel">
+    <script type="module">
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom/client';
 
-      const { useState, useEffect, useRef, useCallback, Fragment } = React;
+// --- START OF constants.ts ---
+const THEMES = {
+    default: { dark: { primary: '79 70 229', secondary: '16 185 129', background: '17 24 39', surface: '31 41 55', 'text-primary': '249 250 251', 'text-secondary': '156 163 175', }, light: { primary: '79 70 229', secondary: '16 185 129', background: '243 244 246', surface: '255 255 255', 'text-primary': '17 24 39', 'text-secondary': '55 65 81', } },
+    ocean: { dark: { primary: '59 130 246', secondary: '52 211 153', background: '15 23 42', surface: '30 41 59', 'text-primary': '241 245 249', 'text-secondary': '148 163 184', }, light: { primary: '59 130 246', secondary: '22 163 74', background: '240 249 255', surface: '255 255 255', 'text-primary': '30 41 59', 'text-secondary': '71 85 105', } },
+    sunset: { dark: { primary: '249 115 22', secondary: '239 68 68', background: '28 25 23', surface: '41 37 36', 'text-primary': '250 250 249', 'text-secondary': '168 162 158', }, light: { primary: '234 88 12', secondary: '220 38 38', background: '254 252 251', surface: '255 255 255', 'text-primary': '28 25 23', 'text-secondary': '68 64 60', } },
+    forest: { dark: { primary: '34 197 94', secondary: '202 138 4', background: '20 30 20', surface: '30 46 30', 'text-primary': '220 252 231', 'text-secondary': '163 230 170', }, light: { primary: '22 163 74', secondary: '202 138 4', background: '240 253 244', surface: '255 255 255', 'text-primary': '21 21 21', 'text-secondary': '63 63 63', } },
+    graphite: { dark: { primary: '148 163 184', secondary: '100 116 139', background: '15 23 42', surface: '30 41 59', 'text-primary': '241 245 249', 'text-secondary': '148 163 184', }, light: { primary: '71 85 105', secondary: '100 116 139', background: '241 245 249', surface: '255 255 255', 'text-primary': '15 23 42', 'text-secondary': '51 65 85', } },
+    rose: { dark: { primary: '251 113 133', secondary: '251 146 60', background: '53 23 29', surface: '79 32 43', 'text-primary': '255 241 242', 'text-secondary': '253 164 175', }, light: { primary: '244 63 94', secondary: '217 119 6', background: '255 241 242', surface: '255 255 255', 'text-primary': '131 24 67', 'text-secondary': '190 24 93', } }
+};
 
-      // --- CONSTANTS ---
-      const themes = {
-          default: { dark: { primary: '79 70 229', secondary: '16 185 129', background: '17 24 39', surface: '31 41 55', 'text-primary': '249 250 251', 'text-secondary': '156 163 175', }, light: { primary: '79 70 229', secondary: '16 185 129', background: '243 244 246', surface: '255 255 255', 'text-primary': '17 24 39', 'text-secondary': '55 65 81', } },
-          ocean: { dark: { primary: '59 130 246', secondary: '52 211 153', background: '15 23 42', surface: '30 41 59', 'text-primary': '241 245 249', 'text-secondary': '148 163 184', }, light: { primary: '59 130 246', secondary: '22 163 74', background: '240 249 255', surface: '255 255 255', 'text-primary': '30 41 59', 'text-secondary': '71 85 105', } },
-          sunset: { dark: { primary: '249 115 22', secondary: '239 68 68', background: '28 25 23', surface: '41 37 36', 'text-primary': '250 250 249', 'text-secondary': '168 162 158', }, light: { primary: '234 88 12', secondary: '220 38 38', background: '254 252 251', surface: '255 255 255', 'text-primary': '28 25 23', 'text-secondary': '68 64 60', } },
-          forest: { dark: { primary: '34 197 94', secondary: '202 138 4', background: '20 30 20', surface: '30 46 30', 'text-primary': '220 252 231', 'text-secondary': '163 230 170', }, light: { primary: '22 163 74', secondary: '202 138 4', background: '240 253 244', surface: '255 255 255', 'text-primary': '21 21 21', 'text-secondary': '63 63 63', } },
-          graphite: { dark: { primary: '148 163 184', secondary: '100 116 139', background: '15 23 42', surface: '30 41 59', 'text-primary': '241 245 249', 'text-secondary': '148 163 184', }, light: { primary: '71 85 105', secondary: '100 116 139', background: '241 245 249', surface: '255 255 255', 'text-primary': '15 23 42', 'text-secondary': '51 65 85', } },
-          rose: { dark: { primary: '251 113 133', secondary: '251 146 60', background: '53 23 29', surface: '79 32 43', 'text-primary': '255 241 242', 'text-secondary': '253 164 175', }, light: { primary: '244 63 94', secondary: '217 119 6', background: '255 241 242', surface: '255 255 255', 'text-primary': '131 24 67', 'text-secondary': '190 24 93', } }
-      };
-      const ALARM_SOUNDS = {
-          default: { name: 'Alarm Clock', url: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg' },
-          digital: { name: 'Digital', url: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg' },
-          bell: { name: 'School Bell', url: 'https://actions.google.com/sounds/v1/alarms/school_bell.ogg' },
-          rooster: { name: 'Rooster', url: 'https://actions.google.com/sounds/v1/animals/rooster_crowing.ogg' },
-      };
-      const INITIAL_SETTINGS = { theme: 'default', darkMode: true, useSearch: false, apiKey: '', aiUnlocked: false, alarmSound: 'default', customAlarmSoundUrl: '', showDateTimeInHeader: true };
+const ALARM_SOUNDS = {
+    default: { name: 'Alarm Clock', url: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg' },
+    digital: { name: 'Digital', url: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg' },
+    bell: { name: 'School Bell', url: 'https://actions.google.com/sounds/v1/alarms/school_bell.ogg' },
+    rooster: { name: 'Rooster', url: 'https://actions.google.com/sounds/v1/animals/rooster_crowing.ogg' },
+};
 
-      // --- ICONS ---
-      const Icon = ({ name, className }) => {
-        const icons = {
-            clock: <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />,
-            timer: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />,
-            plus: <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />,
-            cog: <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-.962l5.123.48c.55.052.994.546.942 1.096l-.48 5.123c-.044.472-.47.84-1.096.942l-5.123-.48c-.55-.052-.994-.546-.942-1.096L9.594 3.94zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />,
-            chat: <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m3.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />,
-            x: <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />,
-            play: <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />,
-            pause: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-6-13.5v13.5" />,
-            trash: <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.226 2.077H8.062a2.25 2.25 0 01-2.226-2.077L3.882 5.79m18.12-1.02A1.125 1.125 0 0020.25 5.25h-4.5M12 5.25V3m-4.5 2.25H3.75m0 0A1.125 1.125 0 012.625 4.125h18.75c.621 0 1.125.504 1.125 1.125v0" />,
-            send: <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />,
-            reset: <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.691L7.98 12.54M16.023 9.348L12.057 5l-4.066 4.067" />,
-        };
-        return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>{icons[name]}</svg>;
-      };
+const INITIAL_SETTINGS = { theme: 'default', darkMode: false, alarmSound: 'default', customAlarmSoundUrl: '', showDateTimeInHeader: true, icalUrl: '' };
+// --- END OF constants.ts ---
 
-      // --- HOOKS ---
-      const useLocalStorage = (key, initialValue) => {
-        const [storedValue, setStoredValue] = useState(() => {
-          try {
-            const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : initialValue;
-          } catch (error) {
-            console.error(error);
-            return initialValue;
+// --- START OF hooks/useLocalStorage.ts ---
+function useLocalStorage(key, initialValue) {
+  const [storedValue, setStoredValue] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+// --- END OF hooks/useLocalStorage.ts ---
+
+// --- START OF hooks/useInterval.ts ---
+function useInterval(callback, delay) {
+  const savedCallback = useRef(null);
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    function tick() {
+      if (savedCallback.current) {
+        savedCallback.current();
+      }
+    }
+    if (delay !== null) {
+      let id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+}
+// --- END OF hooks/useInterval.ts ---
+
+// --- START OF hooks/useEventNotifications.ts ---
+function useEventNotifications(events) {
+  const notifiedEventIds = useRef(new Set());
+
+  useEffect(() => {
+    const checkEvents = () => {
+      const now = new Date();
+      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+
+      events.forEach(event => {
+        if (
+          event.start > now &&
+          event.start <= fiveMinutesFromNow &&
+          !notifiedEventIds.current.has(event.uid)
+        ) {
+          if (Notification.permission === 'granted') {
+            new Notification(event.summary, {
+              body: `Starts at ${event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+              icon: '/vite.svg',
+            });
+            notifiedEventIds.current.add(event.uid);
           }
-        });
+        }
+      });
+    };
 
-        const setValue = (value) => {
-          try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          } catch (error) {
-            console.error(error);
-          }
-        };
-        return [storedValue, setValue];
-      };
-      
-      const useInterval = (callback, delay) => {
-        const savedCallback = useRef();
-        useEffect(() => { savedCallback.current = callback; }, [callback]);
-        useEffect(() => {
-          function tick() { savedCallback.current(); }
-          if (delay !== null) {
-            let id = setInterval(tick, delay);
-            return () => clearInterval(id);
-          }
-        }, [delay]);
-      };
-      
-      // --- COMPONENTS ---
-      
-      const HeaderClock = () => {
-        const [time, setTime] = useState(new Date());
-        useEffect(() => {
-            const timerId = setInterval(() => setTime(new Date()), 1000);
-            return () => clearInterval(timerId);
-        }, []);
+    const intervalId = setInterval(checkEvents, 60 * 1000);
 
-        return (
-            <div className="text-right hidden sm:block">
-                <div className="font-mono text-lg font-semibold text-text-primary tracking-tight">
-                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                </div>
-                <div className="text-xs text-text-secondary">
-                    {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-                </div>
-            </div>
-        );
-      };
+    return () => clearInterval(intervalId);
+  }, [events]);
 
-      const Header = ({ onSettingsClick, onChatClick, hasApiKey, showDateTime }) => {
-        return (
-          <header className="flex justify-between items-center p-4 md:p-6 animate-fade-in">
-            <h1 className="text-2xl font-bold tracking-tighter text-text-primary">GeeClock</h1>
-            <div className="flex items-center gap-4">
-              {showDateTime && <HeaderClock />}
-              <div className="flex items-center gap-2">
-                {hasApiKey && <button onClick={onChatClick} className="p-2 rounded-full hover:bg-surface transition-colors" aria-label="Open Chat"><Icon name="chat" className="w-6 h-6" /></button>}
-                <button onClick={onSettingsClick} className="p-2 rounded-full hover:bg-surface transition-colors" aria-label="Open Settings"><Icon name="cog" className="w-6 h-6" /></button>
-              </div>
-            </div>
-          </header>
-        );
-      };
+  const requestNotificationPermission = () => {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  };
 
-      const Clock = () => {
-        const [time, setTime] = useState(new Date());
-        useEffect(() => {
-            const timerId = setInterval(() => setTime(new Date()), 1000);
-            return () => clearInterval(timerId);
-        }, []);
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+}
+// --- END OF hooks/useEventNotifications.ts ---
 
-        return (
-            <div className="flex flex-col items-center justify-center p-8 animate-fade-in">
-                <div className="font-mono text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-primary">
-                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                </div>
-                <div className="mt-2 text-lg md:text-xl text-text-secondary">
-                    {time.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </div>
-            </div>
-        );
-      };
-      
-      const formatTime = (seconds) => {
-        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        return `${h}:${m}:${s}`;
-      };
+// --- START OF utils/ical.ts ---
+const parseICalDate = (dateStr) => {
+  const year = parseInt(dateStr.substring(0, 4), 10);
+  const month = parseInt(dateStr.substring(4, 6), 10) - 1;
+  const day = parseInt(dateStr.substring(6, 8), 10);
+  const hour = parseInt(dateStr.substring(9, 11), 10);
+  const minute = parseInt(dateStr.substring(11, 13), 10);
+  const second = parseInt(dateStr.substring(13, 15), 10);
+  return new Date(Date.UTC(year, month, day, hour, minute, second));
+};
 
-      const Timer = ({ timer, onDelete, onToggle, onReset, alarmSoundUrl }) => {
-          const [remaining, setRemaining] = useState(timer.remaining);
-          const audioRef = useRef();
+const parseICal = (icalData) => {
+  const events = [];
+  const lines = icalData.split(/\r\n|\n|\r/);
+  
+  let currentEvent = null;
+  
+  lines.forEach(line => {
+    if (line.startsWith('BEGIN:VEVENT')) {
+      currentEvent = {};
+    } else if (line.startsWith('END:VEVENT')) {
+      if (currentEvent && currentEvent.uid && currentEvent.summary && currentEvent.start && currentEvent.end) {
+        events.push(currentEvent);
+      }
+      currentEvent = null;
+    } else if (currentEvent) {
+      if (line.startsWith('UID:')) {
+        currentEvent.uid = line.substring(4);
+      } else if (line.startsWith('SUMMARY:')) {
+        currentEvent.summary = line.substring(8);
+      } else if (line.startsWith('DTSTART')) {
+        const dateStr = line.split(':').pop() || '';
+        currentEvent.start = parseICalDate(dateStr);
+      } else if (line.startsWith('DTEND')) {
+        const dateStr = line.split(':').pop() || '';
+        currentEvent.end = parseICalDate(dateStr);
+      }
+    }
+  });
+  
+  return events.sort((a, b) => a.start.getTime() - b.start.getTime());
+};
+// --- END OF utils/ical.ts ---
 
-          useEffect(() => {
-              setRemaining(timer.remaining);
-          }, [timer.remaining]);
+// --- START OF components/Icon.tsx ---
+const ICONS = {
+    clock: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" }),
+    timer: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" }),
+    plus: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 4.5v15m7.5-7.5h-15" }),
+    cog: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9.594 3.94c.09-.542.56-1.007 1.11-.962l5.123.48c.55.052.994.546.942 1.096l-.48 5.123c-.044.472-.47.84-1.096.942l-5.123-.48c-.55-.052-.994-.546-.942-1.096L9.594 3.94zM15 12a3 3 0 11-6 0 3 3 0 016 0z" }),
+    x: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" }),
+    play: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" }),
+    pause: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 5.25v13.5m-6-13.5v13.5" }),
+    trash: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.226 2.077H8.062a2.25 2.25 0 01-2.226-2.077L3.882 5.79m18.12-1.02A1.125 1.125 0 0020.25 5.25h-4.5M12 5.25V3m-4.5 2.25H3.75m0 0A1.125 1.125 0 012.625 4.125h18.75c.621 0 1.125.504 1.125 1.125v0" }),
+    reset: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.691L7.98 12.54M16.023 9.348L12.057 5l-4.066 4.067" }),
+    calendar: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18" }),
+    'thumb-up': React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.658-.463 1.243-1.117 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h1.294a1.125 1.125 0 011.072.734L8.3 9.75m6.555-2.25H9.75m5.625 0a1.125 1.125 0 011.125 1.125v3.375c0 .621-.504 1.125-1.125 1.125s-1.125-.504-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125z" }),
+    'thumb-down': React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 15V19.5a3.75 3.75 0 11-7.5 0V15m11.356-1.993l-1.263 12c-.07.658.463 1.243 1.117 1.243H19.75a1.125 1.125 0 001.12-1.243l-1.264-12A1.125 1.125 0 0018.487 10.5h-1.294a1.125 1.125 0 00-1.072.734L14.7 12.75m-6.555-2.25H14.25m-5.625 0a1.125 1.125 0 00-1.125 1.125v3.375c0 .621.504 1.125 1.125 1.125s1.125-.504 1.125-1.125V11.25c0-.621-.504-1.125-1.125-1.125z" }),
+    send: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" }),
+    image: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" }),
+    sparkles: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.553L16.5 21.75l-.398-1.197a3.375 3.375 0 00-2.456-2.456L12.75 18l1.197-.398a3.375 3.375 0 002.456-2.456L16.5 14.25l.398 1.197a3.375 3.375 0 002.456 2.456l1.197.398-1.197.398a3.375 3.375 0 00-2.456 2.456z" }),
+    'volume-up': React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M11.25 5.25v13.5l-4.125-4.125H4.5A2.25 2.25 0 012.25 12v-3a2.25 2.25 0 012.25-2.25h2.625L11.25 5.25z" }),
+    stop: React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z" }),
+};
 
-          useInterval(() => {
-              if (timer.isRunning && remaining > 0) {
-                  const newRemaining = timer.remaining - (Date.now() - timer.startTime) / 1000;
-                  setRemaining(Math.max(0, newRemaining));
-              }
+const Icon = ({ name, className }) => {
+  return (
+    React.createElement("svg", { 
+      xmlns: "http://www.w3.org/2000/svg", 
+      fill: "none", 
+      viewBox: "0 0 24 24", 
+      strokeWidth: 1.5, 
+      stroke: "currentColor", 
+      className: className
+    }, 
+      ICONS[name]
+    )
+  );
+};
+// --- END OF components/Icon.tsx ---
 
-              if (remaining <= 0 && timer.isRunning) {
-                  if (audioRef.current) audioRef.current.play();
-                  onToggle(timer.id);
-              }
-          }, 1000);
-          
-          const progress = ((timer.duration - remaining) / timer.duration) * 100;
+// --- START OF components/Modal.tsx ---
+const Modal = ({ isOpen, onClose, title, children, onTitleClick, size = 'default' }) => {
+  if (!isOpen) return null;
 
-          return (
-             <div className="bg-surface rounded-lg p-4 flex flex-col gap-4 relative overflow-hidden animate-fade-in">
-                <div className="absolute top-0 left-0 h-full bg-primary/10" style={{ width: `${progress}%`, transition: 'width 1s linear' }} />
-                
-                <div className="relative z-10 flex justify-between items-center">
-                    <span className="font-semibold text-text-primary">{timer.label}</span>
-                    <div className="flex items-center">
-                      <button onClick={() => onToggle(timer.id)} className="p-2 rounded-full hover:bg-text-secondary/20 transition-colors" aria-label={timer.isRunning ? 'Pause timer' : 'Start timer'}>
-                          <Icon name={timer.isRunning ? 'pause' : 'play'} className="w-5 h-5 text-primary" />
-                      </button>
-                      <button onClick={() => onReset(timer.id)} className="p-2 rounded-full hover:bg-text-secondary/10 text-text-secondary transition-colors" aria-label="Reset timer">
-                          <Icon name="reset" className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => onDelete(timer.id)} className="p-2 rounded-full hover:bg-text-secondary/10 text-text-secondary transition-colors" aria-label="Delete timer">
-                          <Icon name="trash" className="w-5 h-5" />
-                      </button>
-                    </div>
-                </div>
+  const isFullscreen = size === 'fullscreen';
 
-                <div className="relative z-10 text-center py-4">
-                     <span className="font-mono text-6xl font-bold text-primary tracking-tight">{formatTime(Math.max(0, Math.round(remaining)))}</span>
-                </div>
-                
-                <audio ref={audioRef} src={alarmSoundUrl} preload="auto" />
-            </div>
-          );
-      };
-      
-      const TimerList = ({ timers, onAdd, onDelete, onToggle, onReset, alarmSoundUrl }) => {
-          return (
-              <div className="p-4 md:p-6 space-y-4 animate-fade-in">
-                  {timers.length === 0 ? (
-                      <div className="text-center py-16 text-text-secondary">
-                          <p>No timers yet.</p>
-                          <button onClick={onAdd} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                              <Icon name="plus" className="w-5 h-5" />
-                              Add Timer
-                          </button>
-                      </div>
-                  ) : (
-                      timers.map(timer => (
-                          <Timer key={timer.id} timer={timer} onDelete={onDelete} onToggle={onToggle} onReset={onReset} alarmSoundUrl={alarmSoundUrl} />
-                      ))
-                  )}
-              </div>
-          );
-      };
-      
-      const Modal = ({ isOpen, onClose, title, children, onTitleClick }) => {
-        if (!isOpen) return null;
+  if (isFullscreen) {
+    return (
+      React.createElement("div", { 
+        className: "fixed inset-0 bg-background z-50 animate-fade-in",
+        role: "dialog", 
+        "aria-modal": "true", 
+        "aria-labelledby": "modal-title"
+      }, 
+        React.createElement("div", { className: "bg-surface shadow-lg w-full h-full flex flex-col" }, 
+          React.createElement("header", { className: "flex justify-between items-center p-4 border-b border-white/10 flex-shrink-0" }, 
+            React.createElement("h2", { id: "modal-title", className: "text-lg font-semibold", onClick: onTitleClick, style: { cursor: onTitleClick ? 'pointer' : 'default' } }, title), 
+            React.createElement("button", { onClick: onClose, className: "p-1 rounded-full hover:bg-white/10", "aria-label": "Close modal" }, React.createElement(Icon, { name: "x", className: "w-5 h-5" }))
+          ), 
+          React.createElement("main", { className: "flex-1 overflow-hidden" }, 
+            children
+          )
+        )
+      )
+    );
+  }
+  
+  return (
+    React.createElement("div", { className: "fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in", onClick: onClose, role: "dialog", "aria-modal": "true", "aria-labelledby": "modal-title" }, 
+      React.createElement("div", { className: "bg-surface rounded-xl shadow-lg w-full max-w-md m-4 animate-slide-in", onClick: e => e.stopPropagation() }, 
+        React.createElement("header", { className: "flex justify-between items-center p-4 border-b border-white/10" }, 
+          React.createElement("h2", { id: "modal-title", className: "text-lg font-semibold", onClick: onTitleClick, style: { cursor: onTitleClick ? 'pointer' : 'default' } }, title), 
+          React.createElement("button", { onClick: onClose, className: "p-1 rounded-full hover:bg-white/10", "aria-label": "Close modal" }, React.createElement(Icon, { name: "x", className: "w-5 h-5" }))
+        ), 
+        React.createElement("main", { className: "p-4" }, 
+          children
+        )
+      )
+    )
+  );
+};
+// --- END OF components/Modal.tsx ---
 
-        return (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div className="bg-surface rounded-xl shadow-lg w-full max-w-md m-4 animate-slide-in" onClick={e => e.stopPropagation()}>
-              <header className="flex justify-between items-center p-4 border-b border-white/10">
-                <h2 id="modal-title" className="text-lg font-semibold" onClick={onTitleClick} style={{ cursor: onTitleClick ? 'pointer' : 'default' }}>{title}</h2>
-                <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10" aria-label="Close modal"><Icon name="x" className="w-5 h-5" /></button>
-              </header>
-              <main className="p-4">
-                {children}
-              </main>
-            </div>
-          </div>
-        );
-      };
-      
-      const AddTimerModal = ({ isOpen, onClose, onAddTimer }) => {
-          const [label, setLabel] = useState('');
-          const [hours, setHours] = useState(0);
-          const [minutes, setMinutes] = useState(5);
-          const [seconds, setSeconds] = useState(0);
+// --- START OF components/Header.tsx ---
+const HeaderClock = () => {
+    const [time, setTime] = useState(new Date());
+    useEffect(() => {
+        const timerId = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(timerId);
+    }, []);
 
-          const handleSubmit = (e) => {
-              e.preventDefault();
-              const duration = (hours * 3600) + (minutes * 60) + seconds;
-              if (duration > 0) {
-                  onAddTimer({ label: label || 'New Timer', duration });
-                  setLabel('');
-                  setHours(0);
-                  setMinutes(5);
-                  setSeconds(0);
-                  onClose();
-              }
-          };
-          
-          return (
-              <Modal isOpen={isOpen} onClose={onClose} title="Add New Timer">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                          <label htmlFor="label" className="block text-sm font-medium text-text-secondary">Label</label>
-                          <input type="text" id="label" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g., Cooking Pasta" className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" />
-                      </div>
-                      <div className="flex gap-2">
-                          <div className="flex-1">
-                              <label htmlFor="hours" className="block text-sm font-medium text-text-secondary">Hours</label>
-                              <input type="number" id="hours" value={hours} onChange={e => setHours(parseInt(e.target.value, 10))} min="0" max="23" className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" />
-                          </div>
-                          <div className="flex-1">
-                              <label htmlFor="minutes" className="block text-sm font-medium text-text-secondary">Minutes</label>
-                              <input type="number" id="minutes" value={minutes} onChange={e => setMinutes(parseInt(e.target.value, 10))} min="0" max="59" className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" />
-                          </div>
-                          <div className="flex-1">
-                              <label htmlFor="seconds" className="block text-sm font-medium text-text-secondary">Seconds</label>
-                              <input type="number" id="seconds" value={seconds} onChange={e => setSeconds(parseInt(e.target.value, 10))} min="0" max="59" className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" />
-                          </div>
-                      </div>
-                      <button type="submit" className="w-full p-2 bg-primary text-white font-semibold rounded-md hover:opacity-90 transition-opacity">Add Timer</button>
-                  </form>
-              </Modal>
-          );
-      };
-      
-      const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
-        const [titleClickCount, setTitleClickCount] = useState(0);
+    return (
+        React.createElement("div", { className: "text-right hidden sm:block" }, 
+            React.createElement("div", { className: "font-mono text-lg font-semibold text-text-primary tracking-tight" }, 
+                time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+            ), 
+            React.createElement("div", { className: "text-xs text-text-secondary" }, 
+                time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+            )
+        )
+    );
+};
 
-        const handleTitleClick = () => {
-          if (settings.aiUnlocked) return;
-          const newCount = titleClickCount + 1;
-          setTitleClickCount(newCount);
-          if (newCount >= 5) {
-            onSettingsChange({ ...settings, aiUnlocked: true });
-          }
-        };
+const Header = ({ onSettingsClick, showDateTime }) => {
+  return (
+    React.createElement("header", { className: "flex justify-between items-center p-4 md:p-6 animate-fade-in" }, 
+      React.createElement("h1", { className: "text-2xl font-bold tracking-tighter text-text-primary" }, "GeeClock"), 
+      React.createElement("div", { className: "flex items-center gap-4" }, 
+        showDateTime && React.createElement(HeaderClock, null), 
+        React.createElement("div", { className: "flex items-center gap-2" }, 
+          React.createElement("button", { onClick: onSettingsClick, className: "p-2 rounded-full hover:bg-surface transition-colors", "aria-label": "Open Settings" }, React.createElement(Icon, { name: "cog", className: "w-6 h-6" }))
+        )
+      )
+    )
+  );
+};
+// --- END OF components/Header.tsx ---
 
-        return (
-          <Modal isOpen={isOpen} onClose={onClose} title="Settings" onTitleClick={handleTitleClick}>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-text-secondary">Theme</label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {Object.keys(themes).map(themeKey => (
-                    <button key={themeKey} onClick={() => onSettingsChange({...settings, theme: themeKey })} className={`p-2 rounded-md text-sm capitalize border-2 ${settings.theme === themeKey ? 'border-primary' : 'border-surface'}`}>
-                      {themeKey}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary">Appearance</label>
-                <div className="mt-2 flex rounded-md bg-background p-1">
-                    <button onClick={() => onSettingsChange({...settings, darkMode: false})} className={`flex-1 p-1.5 rounded text-sm ${!settings.darkMode ? 'bg-surface shadow' : ''}`}>Light</button>
-                    <button onClick={() => onSettingsChange({...settings, darkMode: true})} className={`flex-1 p-1.5 rounded text-sm ${settings.darkMode ? 'bg-surface shadow' : ''}`}>Dark</button>
-                </div>
-              </div>
-               <div className="flex items-center justify-between">
-                  <label htmlFor="show-datetime" className="text-sm font-medium text-text-secondary">
-                      Show Time in Header
-                      <p className="text-xs text-text-secondary/70">Display time and date in the header.</p>
-                  </label>
-                  <button
-                      id="show-datetime"
-                      role="switch"
-                      aria-checked={settings.showDateTimeInHeader}
-                      onClick={() => onSettingsChange({...settings, showDateTimeInHeader: !settings.showDateTimeInHeader})}
-                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface ${settings.showDateTimeInHeader ? 'bg-primary' : 'bg-gray-600'}`}
-                  >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.showDateTimeInHeader ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-              </div>
-               <div>
-                <label className="block text-sm font-medium text-text-secondary">Alarm Sound</label>
-                <select
-                  value={settings.alarmSound}
-                  onChange={e => onSettingsChange({ ...settings, alarmSound: e.target.value, customAlarmSoundUrl: e.target.value === 'custom' ? settings.customAlarmSoundUrl : '' })}
-                  className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none"
-                  aria-label="Select alarm sound"
-                >
-                  {Object.entries(ALARM_SOUNDS).map(([key, { name }]) => (
-                    <option key={key} value={key}>{name}</option>
-                  ))}
-                  <option value="custom">Custom URL</option>
-                </select>
-              </div>
-              {settings.alarmSound === 'custom' && (
-                <div className="animate-fade-in">
-                  <label htmlFor="custom-alarm-url" className="block text-sm font-medium text-text-secondary">Custom Sound URL</label>
-                  <input
-                    type="url"
-                    id="custom-alarm-url"
-                    value={settings.customAlarmSoundUrl}
-                    onChange={e => onSettingsChange({ ...settings, customAlarmSoundUrl: e.target.value })}
-                    placeholder="https://example.com/sound.mp3"
-                    className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-              )}
+// --- START OF components/Clock.tsx ---
+const Clock = () => {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+      const timerId = setInterval(() => setTime(new Date()), 1000);
+      return () => clearInterval(timerId);
+  }, []);
 
-              {settings.aiUnlocked && (
-                <div className="pt-4 mt-4 border-t border-surface">
-                  <h3 className="text-md font-semibold text-text-primary">AI Assistant</h3>
-                   <p className="text-xs text-text-secondary/70 mb-4">Click the modal title 5 times to hide this section.</p>
-                  
-                  <div>
-                    <label htmlFor="api-key" className="block text-sm font-medium text-text-secondary">Gemini API Key</label>
-                    <input 
-                      type="password"
-                      id="api-key"
-                      value={settings.apiKey}
-                      onChange={e => onSettingsChange({...settings, apiKey: e.target.value})}
-                      placeholder="Enter your Gemini API Key"
-                      className="mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none"
-                    />
-                     <p className="text-xs text-text-secondary/70 mt-1">Your key is stored locally in your browser.</p>
-                  </div>
+  return (
+      React.createElement("div", { className: "flex flex-col items-center justify-center p-8 animate-fade-in" }, 
+          React.createElement("div", { className: "font-mono text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-primary" }, 
+              time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+          ), 
+          React.createElement("div", { className: "mt-2 text-lg md:text-xl text-text-secondary" }, 
+              time.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+          )
+      )
+  );
+};
+// --- END OF components/Clock.tsx ---
 
-                  <div className={`mt-4 flex items-center justify-between transition-opacity ${settings.apiKey ? 'opacity-100' : 'opacity-50'}`}>
-                      <label htmlFor="use-search" className="text-sm font-medium text-text-secondary">
-                          Enable Google Search
-                          <p className="text-xs text-text-secondary/70">Allow AI to access up-to-date information.</p>
-                      </label>
-                      <button
-                          id="use-search"
-                          role="switch"
-                          aria-checked={settings.useSearch}
-                          onClick={() => settings.apiKey && onSettingsChange({...settings, useSearch: !settings.useSearch})}
-                          disabled={!settings.apiKey}
-                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface ${settings.useSearch ? 'bg-primary' : 'bg-gray-600'} ${!settings.apiKey ? 'cursor-not-allowed' : ''}`}
-                      >
-                          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.useSearch ? 'translate-x-5' : 'translate-x-0'}`} />
-                      </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Modal>
-        );
-      };
-      
-      const ChatBot = ({ isOpen, onClose, useSearch, apiKey }) => {
-          const [messages, setMessages] = useState([]);
-          const [input, setInput] = useState('');
-          const [isLoading, setIsLoading] = useState(false);
-          const messagesEndRef = useRef(null);
-          const chatRef = useRef(null);
-          const lastSettings = useRef({});
+// --- START OF components/Timer.tsx ---
+const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+};
 
-          // 1. DEFINE THE MASTER SYSTEM INSTRUCTION
-          // This sets the AI's core persona based on your detailed guidelines.
-          const SYSTEM_INSTRUCTION = `
-You are Gee’s Senior, Solution-Oriented Support Assistant AI.
-Your mission is to generate accurate, empathetic, and well-structured support analyses and communication drafts for Stripe users.
-You must always use a warm, human-like, professional tone and prevent dissatisfaction (DSAT) through Positive Scripting and Never Blaming.
-You will be given context and a specific template format to follow. Adhere to the requested format precisely.
-Universal Rules:
-- Use bold for section titles.
-- Apply appropriate empathy throughout.
-- Never blame anyone for issues. Use "NA" for missing info.
-- Never mention PII (full names, phone, email). First names are okay if provided in context.
-- Use "User" for a Stripe account holder and "End User" for their customer.
-- Do not mention internal team names when escalating.
-- Use simple English and avoid jargon in user-facing content. In internal notes, be technical and precise.
-- All user-facing links must be public, clickable, and not in parentheses.
-`;
+const TimerComponent = ({ timer, onDelete, onToggle, onReset, alarmSoundUrl }) => {
+    const [remaining, setRemaining] = useState(timer.remaining);
+    const [isAlarming, setIsAlarming] = useState(false);
+    const audioRef = useRef(null);
 
-          // 2. CREATE THE PROMPT TEMPLATE LIBRARY
-          // A clean, manageable library for all your formats.
-          // The AI will fill this out based on the user's notes.
-          const PROMPT_TEMPLATES = {
-              '/eo': `
-Act as a support specialist writing an Email Outline (EO). Analyze the following context and fill out every field in the template below. The email content should be in paragraph form, empathetic, and professional.
+    useEffect(() => {
+        setRemaining(timer.remaining);
+        if (isAlarming && timer.remaining > 0) {
+            setIsAlarming(false);
+        }
+    }, [timer.remaining, isAlarming]);
 
-**Context:**
-${'{userNotes}'}
+    useInterval(() => {
+        if (timer.isRunning && timer.startTime) {
+            const elapsed = (Date.now() - timer.startTime) / 1000;
+            const newRemaining = timer.duration - elapsed;
+            setRemaining(Math.max(0, newRemaining));
 
-**Template to Fill:**
-EO (Email Outline)
-Case ID: 
-Summary of the issue: 
------ EMAIL CONTENT BEGINS -----
-
-Hi there,
-
-[Compose the full email body here based on the context]
-
-Best,
-Gee
------ EMAIL CONTENT ENDS -----
-Analysis:
-Steps I took:
-Information in the reply must include:
-Already know: 
-Need to know: 
-What the user need to do: 
-Outcome Summary: 
-DSAT analysis: 
-Will this case be a CSAT?: 
-Is the user distressed?:`,
-
-              '/cl': `
-Act as a support specialist writing a Concise List (CL) for internal review. Analyze the following context and fill out every field in the template below.
-
-**Context:**
-${'{userNotes}'}
-
-**Template to Fill:**
-CL (Concise List)
-Have you checked all related cases?: YES
-Have you read through the entire thread?: YES
-Summary of the issue: 
-Steps I took:
-Relevant object IDs:
-Final outcome: 
-Relevant documents: 
-Will this case be a CSAT?: 
-Is the user distressed?:`,
-
-              '/inv': `
-Act as a support specialist creating an Internal Note (INV). Analyze the following context and fill out every field precisely.
-
-**Context:**
-${'{userNotes}'}
-
-**Template to Fill:**
-INV (Internal Note)
-**Internal Note checklist**
-Consent to be recorded:
-Authentication/Verification PIN/PII?:
-User-Account Type: 
-User-Account ID:  
-Have you checked all related cases?:
-Have you read through the entire thread?:
-List all user's concerns/inquiries:
-Topic:
-Summary of the issue: 
-Steps I took:
-Check Lumos (RP used):  
-Check Confluence: NA
-Specific Dashboard link:  
-Check Public Documentation:
-Final Outcome: 
-Why is the case open/pending: 
-Will this case be a CSAT?: 
-Is the user distressed?:`,
-
-              '/qs': `
-Act as a support specialist writing a Quick Summary (QS). Analyze the context to create a brief, scannable summary and a ready-to-send user message.
-
-**Context:**
-${'{userNotes}'}
-
-**Template to Fill:**
-QS (Quick Summary)
-Summary of the issue:
-Case link:  
-Case ID:  
-Account ID:  
-User-Account ID Platform:  
-User-Account ID Connected Account: 
-Speculation: 
-What can I tell the user?:
-Relevant Stripe resources: 
-Relevant IDs:
-Will this case be a CSAT?: 
-Is the user distressed?:`,
-
-              '/cf': `
-Act as a support specialist creating a Consult Form (CF). The tone must be neutral and technical. Summaries must be exactly 2-3 sentences.
-
-**Context:**
-${'{userNotes}'}
-
-**Template to Fill:**
-CF (Consult Form)
-Consult[Department]: (Chat/RAC)
-Ticket Link: 
-Object/Account ID(s):
-User issue Summary:
-Your Investigation:`,
-              '/pc': `
-Act as a support specialist writing a Platinum Consult (PC) form. Be concise and factual.
-
-**Context:**
-${'{userNotes}'}
-
-**Template to Fill:**
-PC (Platinum Consult)
-SF Ticket Link: 
-Account ID: 
-Relevant object IDs:
-Summary of the Issue: 
-Resources found and read:
-Speculation:`
-          };
-          
-          useEffect(() => {
-            if (isOpen) {
-              if (!apiKey) {
-                setMessages([{ role: 'model', text: 'Welcome! Please set your Gemini API Key in the Settings to enable the AI assistant.' }]);
-                chatRef.current = null;
-                return;
-              }
-
-              const currentSettings = { apiKey, useSearch };
-              if (
-                !chatRef.current ||
-                lastSettings.current.apiKey !== currentSettings.apiKey ||
-                lastSettings.current.useSearch !== currentSettings.useSearch
-              ) {
-                console.log("Initializing new chat session with master instructions.");
-                try {
-                  const ai = new window.GoogleGenAI({ apiKey });
-                  chatRef.current = ai.chats.create({
-                    model: 'gemini-2.5-flash',
-                    config: {
-                      systemInstruction: SYSTEM_INSTRUCTION, // Use the master instruction
-                      tools: useSearch ? [{googleSearch: {}}] : undefined,
-                    },
-                  });
-                  lastSettings.current = currentSettings;
-                  setMessages([{ role: 'model', text: 'Gee Support Assistant ready. Please provide a command (e.g., /cl, /eo) followed by your notes.' }]);
-                } catch (error) {
-                    console.error("AI Initialization failed:", error);
-                    setMessages([{ role: 'model', text: 'Failed to initialize AI. Please check your API key.' }]);
-                    chatRef.current = null;
-                }
-              }
+            if (newRemaining <= 0) {
+                setIsAlarming(true);
+                onToggle(timer.id);
             }
-          }, [isOpen, apiKey, useSearch]);
-          
-          const scrollToBottom = () => {
-              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-          };
-          
-          useEffect(scrollToBottom, [messages]);
-          
-          // 3. REVISE THE handleSend FUNCTION
-          // This logic now finds the right template and builds the final prompt.
-          const handleSend = async () => {
-              if (!input.trim() || isLoading || !chatRef.current) return;
+        }
+    }, 1000);
 
-              const newMessages = [...messages, { role: 'user', text: input }];
-              setMessages(newMessages);
-              const userInput = input;
-              setInput('');
-              setIsLoading(true);
+    useEffect(() => {
+        if (isAlarming) {
+            audioRef.current?.play().catch(e => console.error("Audio playback failed.", e));
+        } else {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+        }
+    }, [isAlarming]);
 
-              let finalPrompt = userInput;
-              
-              const command = userInput.toLowerCase().split(' ')[0];
-              const template = PROMPT_TEMPLATES[command];
+    const stopAlarm = () => {
+        if (isAlarming) {
+            setIsAlarming(false);
+        }
+    };
 
-              if (template) {
-                  const userNotes = userInput.substring(command.length + 1);
-                  finalPrompt = template.replace('${'{userNotes}'}', userNotes);
-              }
-              
-              try {
-                  const result = await chatRef.current.sendMessage({ message: finalPrompt });
-                  const formattedText = result.text; // The AI response is likely pre-formatted, so we may not need extra formatting.
-                  
-                  setMessages(prev => [...prev, { role: 'model', text: formattedText }]);
-              } catch (error) {
-                  console.error("Error sending message:", error);
-                  setMessages(prev => [...prev, { role: 'model', text: 'Sorry, I encountered an error. Check the console.' }]);
-              } finally {
-                  setIsLoading(false);
-              }
-          };
+    const handleToggleClick = () => {
+        stopAlarm();
+        onToggle(timer.id);
+    };
 
-          return (
-              <Modal isOpen={isOpen} onClose={onClose} title="Gee AI Assistant">
-                  <div className="flex flex-col h-[70vh]">
-                      <div className="flex-1 overflow-y-auto space-y-4 p-2">
-                          {messages.map((msg, index) => (
-                              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                  <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} className={`max-w-xs md:max-w-md p-3 rounded-lg ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-background'}`}>
-                                      {msg.text}
-                                  </div>
-                              </div>
-                          ))}
-                          {isLoading && (
-                            <div className="flex justify-start">
-                                <div className="p-3 rounded-lg bg-background">
-                                    <div className="flex items-center gap-2">
-                                        <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                        <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                        <span className="h-2 w-2 bg-primary rounded-full animate-bounce"></span>
-                                    </div>
-                                </div>
-                            </div>
-                          )}
-                          <div ref={messagesEndRef} />
-                      </div>
-                      <div className="mt-4 flex gap-2">
-                          <textarea 
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyPress={e => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                            placeholder="Enter command and notes... (Shift+Enter for new line)"
-                            className="flex-1 p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none resize-none"
-                            rows="4"
-                            disabled={isLoading || !chatRef.current}
-                          />
-                          <button onClick={handleSend} disabled={isLoading || !input.trim() || !chatRef.current} className="p-2 bg-primary text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity self-end">
-                            <Icon name="send" className="w-5 h-5"/>
-                          </button>
-                      </div>
-                  </div>
-              </Modal>
-          );
-      };
+    const handleResetClick = () => {
+        stopAlarm();
+        onReset(timer.id);
+    };
 
-      // --- APP ---
-      const App = () => {
-        const [settings, setSettings] = useLocalStorage('geeclock-settings', INITIAL_SETTINGS);
-        const [timers, setTimers] = useLocalStorage('geeclock-timers', []);
-        const [activeTab, setActiveTab] = useState('clock');
-        const [isAddTimerModalOpen, setAddTimerModalOpen] = useState(false);
-        const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
-        const [isChatOpen, setChatOpen] = useState(false);
+    const handleDeleteClick = () => {
+        stopAlarm();
+        onDelete(timer.id);
+    };
+    
+    const progress = ((timer.duration - remaining) / timer.duration) * 100;
 
-        useEffect(() => {
-          const root = document.documentElement;
-          const theme = themes[settings.theme][settings.darkMode ? 'dark' : 'light'];
-          
-          Object.entries(theme).forEach(([key, value]) => {
-            root.style.setProperty(`--color-${key}`, value);
-          });
-          
-          if (settings.darkMode) {
-            root.classList.add('dark');
-          } else {
-            root.classList.remove('dark');
+    return (
+       React.createElement("div", { className: `bg-surface rounded-lg p-4 flex flex-col gap-4 relative overflow-hidden animate-fade-in transition-shadow ${isAlarming ? 'shadow-lg ring-2 ring-red-500 ring-opacity-75 animate-pulse' : ''}` }, 
+          React.createElement("div", { className: "absolute top-0 left-0 h-full bg-primary/10", style: { width: `${progress}%`, transition: 'width 1s linear' } }), 
+          React.createElement("div", { className: "relative z-10 flex justify-between items-center" }, 
+              React.createElement("span", { className: "font-semibold text-text-primary" }, timer.label), 
+              React.createElement("div", { className: "flex items-center" }, 
+                React.createElement("button", { onClick: handleToggleClick, className: "p-2 rounded-full hover:bg-text-secondary/20 transition-colors", "aria-label": timer.isRunning ? 'Pause timer' : 'Start timer' }, 
+                    React.createElement(Icon, { name: timer.isRunning ? 'pause' : 'play', className: "w-5 h-5 text-primary" })
+                ), 
+                React.createElement("button", { onClick: handleResetClick, className: "p-2 rounded-full hover:bg-text-secondary/10 text-text-secondary transition-colors", "aria-label": "Reset timer" }, 
+                    React.createElement(Icon, { name: "reset", className: "w-5 h-5" })
+                ), 
+                React.createElement("button", { onClick: handleDeleteClick, className: "p-2 rounded-full hover:bg-text-secondary/10 text-text-secondary transition-colors", "aria-label": "Delete timer" }, 
+                    React.createElement(Icon, { name: "trash", className: "w-5 h-5" })
+                )
+              )
+          ), 
+          React.createElement("div", { className: "relative z-10 text-center py-4" }, 
+               React.createElement("span", { className: "font-mono text-6xl font-bold text-primary tracking-tight" }, formatTime(Math.max(0, Math.round(remaining))))
+          ), 
+          React.createElement("audio", { ref: audioRef, src: alarmSoundUrl, preload: "auto", loop: true })
+      )
+    );
+};
+// --- END OF components/Timer.tsx ---
+
+// --- START OF components/TimerList.tsx ---
+const TimerList = ({ timers, onAdd, onDelete, onToggle, onReset, alarmSoundUrl }) => {
+    return (
+        React.createElement("div", { className: "p-4 md:p-6 space-y-4 animate-fade-in" }, 
+            timers.length === 0 ? (
+                React.createElement("div", { className: "text-center py-16 text-text-secondary" }, 
+                    React.createElement("p", null, "No timers yet."), 
+                    React.createElement("button", { onClick: onAdd, className: "mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:opacity-90 transition-opacity" }, 
+                        React.createElement(Icon, { name: "plus", className: "w-5 h-5" }), "Add Timer"
+                    )
+                )
+            ) : (
+                timers.map(timer => (
+                    React.createElement(TimerComponent, { key: timer.id, timer: timer, onDelete: onDelete, onToggle: onToggle, onReset: onReset, alarmSoundUrl: alarmSoundUrl })
+                ))
+            )
+        )
+    );
+};
+// --- END OF components/TimerList.tsx ---
+
+// --- START OF components/AddTimerModal.tsx ---
+const AddTimerModal = ({ isOpen, onClose, onAddTimer }) => {
+    const [label, setLabel] = useState('');
+    const [hours, setHours] = useState(0);
+    const [minutes, setMinutes] = useState(5);
+    const [seconds, setSeconds] = useState(0);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const duration = (hours * 3600) + (minutes * 60) + seconds;
+        if (duration > 0) {
+            onAddTimer({ label: label || 'New Timer', duration });
+            setLabel('');
+            setHours(0);
+            setMinutes(5);
+            setSeconds(0);
+            onClose();
+        }
+    };
+    
+    return (
+        React.createElement(Modal, { isOpen: isOpen, onClose: onClose, title: "Add New Timer" }, 
+            React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" }, 
+                React.createElement("div", null, 
+                    React.createElement("label", { htmlFor: "label", className: "block text-sm font-medium text-text-secondary" }, "Label"), 
+                    React.createElement("input", { type: "text", id: "label", value: label, onChange: e => setLabel(e.target.value), placeholder: "e.g., Cooking Pasta", className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" })
+                ), 
+                React.createElement("div", { className: "flex gap-2" }, 
+                    React.createElement("div", { className: "flex-1" }, 
+                        React.createElement("label", { htmlFor: "hours", className: "block text-sm font-medium text-text-secondary" }, "Hours"), 
+                        React.createElement("input", { type: "number", id: "hours", value: hours, onChange: e => setHours(Math.max(0, parseInt(e.target.value, 10))), min: "0", max: "99", className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" })
+                    ), 
+                    React.createElement("div", { className: "flex-1" }, 
+                        React.createElement("label", { htmlFor: "minutes", className: "block text-sm font-medium text-text-secondary" }, "Minutes"), 
+                        React.createElement("input", { type: "number", id: "minutes", value: minutes, onChange: e => setMinutes(Math.max(0, parseInt(e.target.value, 10))), min: "0", max: "59", className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" })
+                    ), 
+                    React.createElement("div", { className: "flex-1" }, 
+                        React.createElement("label", { htmlFor: "seconds", className: "block text-sm font-medium text-text-secondary" }, "Seconds"), 
+                        React.createElement("input", { type: "number", id: "seconds", value: seconds, onChange: e => setSeconds(Math.max(0, parseInt(e.target.value, 10))), min: "0", max: "59", className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none" })
+                    )
+                ), 
+                React.createElement("button", { type: "submit", className: "w-full p-2 bg-primary text-white font-semibold rounded-md hover:opacity-90 transition-opacity" }, "Add Timer")
+            )
+        )
+    );
+};
+// --- END OF components/AddTimerModal.tsx ---
+
+// --- START OF components/SettingsModal.tsx ---
+const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
+  const [isPlayingTest, setIsPlayingTest] = useState(false);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setIsPlayingTest(false);
+    }
+  }, [isOpen]);
+
+  const handleTestSound = () => {
+    if (isPlayingTest && audioRef.current) {
+        audioRef.current.pause();
+        return;
+    }
+
+    const soundUrl = settings.alarmSound === 'custom'
+        ? settings.customAlarmSoundUrl
+        : (ALARM_SOUNDS[settings.alarmSound]?.url || ALARM_SOUNDS.default.url);
+
+    if (!soundUrl) return;
+
+    try {
+        const audio = new Audio(soundUrl);
+        audioRef.current = audio;
+        audio.play().catch(e => {
+            console.error("Error playing test sound:", e);
+            setIsPlayingTest(false);
+        });
+        audio.onended = () => setIsPlayingTest(false);
+        audio.onpause = () => {
+          if (audioRef.current === audio) {
+            audioRef.current = null;
+            setIsPlayingTest(false);
           }
-        }, [settings]);
+        };
+        setIsPlayingTest(true);
+    } catch (e) {
+        console.error("Failed to create audio object:", e);
+    }
+  };
 
-        const handleAddTimer = ({ label, duration }) => {
-          const newTimer = {
+  const soundUrl = settings.alarmSound === 'custom'
+      ? settings.customAlarmSoundUrl
+      : (ALARM_SOUNDS[settings.alarmSound]?.url || ALARM_SOUNDS.default.url);
+  const isTestable = !!soundUrl;
+
+  return (
+    React.createElement(Modal, { isOpen: isOpen, onClose: onClose, title: "Settings" }, 
+      React.createElement("div", { className: "space-y-6" }, 
+        React.createElement("div", null, 
+          React.createElement("label", { className: "block text-sm font-medium text-text-secondary" }, "Theme"), 
+          React.createElement("div", { className: "grid grid-cols-3 gap-2 mt-2" }, 
+            Object.keys(THEMES).map(themeKey => (
+              React.createElement("button", { key: themeKey, onClick: () => onSettingsChange({...settings, theme: themeKey }), className: `p-2 rounded-md text-sm capitalize border-2 ${settings.theme === themeKey ? 'border-primary' : 'border-surface'}` }, 
+                themeKey
+              )
+            ))
+          )
+        ), 
+        React.createElement("div", null, 
+          React.createElement("label", { className: "block text-sm font-medium text-text-secondary" }, "Appearance"), 
+          React.createElement("div", { className: "mt-2 flex rounded-md bg-background p-1" }, 
+              React.createElement("button", { onClick: () => onSettingsChange({...settings, darkMode: false}), className: `flex-1 p-1.5 rounded text-sm ${!settings.darkMode ? 'bg-surface shadow' : ''}` }, "Light"), 
+              React.createElement("button", { onClick: () => onSettingsChange({...settings, darkMode: true}), className: `flex-1 p-1.5 rounded text-sm ${settings.darkMode ? 'bg-surface shadow' : ''}` }, "Dark")
+          )
+        ), 
+         React.createElement("div", { className: "flex items-center justify-between" }, 
+            React.createElement("label", { htmlFor: "show-datetime", className: "text-sm font-medium text-text-secondary" }, 
+                "Show Time in Header", 
+                React.createElement("p", { className: "text-xs text-text-secondary/70" }, "Display time and date in the header.")
+            ), 
+            React.createElement("button", {
+                id: "show-datetime",
+                role: "switch",
+                "aria-checked": settings.showDateTimeInHeader,
+                onClick: () => onSettingsChange({...settings, showDateTimeInHeader: !settings.showDateTimeInHeader}),
+                className: `relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface ${settings.showDateTimeInHeader ? 'bg-primary' : 'bg-gray-600'}`
+            }, 
+                React.createElement("span", { className: `inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.showDateTimeInHeader ? 'translate-x-5' : 'translate-x-0'}` })
+            )
+        ), 
+         React.createElement("div", null, 
+          React.createElement("label", { className: "block text-sm font-medium text-text-secondary" }, "Alarm Sound"), 
+          React.createElement("div", { className: "flex items-center gap-2" }, 
+            React.createElement("select", {
+              value: settings.alarmSound,
+              onChange: e => onSettingsChange({ ...settings, alarmSound: e.target.value, customAlarmSoundUrl: e.target.value === 'custom' ? settings.customAlarmSoundUrl : '' }),
+              className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none",
+              "aria-label": "Select alarm sound"
+            }, 
+              Object.entries(ALARM_SOUNDS).map(([key, { name }]) => (
+                React.createElement("option", { key: key, value: key }, name)
+              )), 
+              React.createElement("option", { value: "custom" }, "Custom URL")
+            ), 
+            React.createElement("button", {
+                onClick: handleTestSound,
+                disabled: !isTestable,
+                className: "mt-1 p-2 rounded-full hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
+                "aria-label": isPlayingTest ? 'Stop sound' : 'Test sound'
+            }, 
+                React.createElement(Icon, { name: isPlayingTest ? 'stop' : 'volume-up', className: "w-5 h-5 text-primary" })
+            )
+          )
+        ), 
+        settings.alarmSound === 'custom' && (
+          React.createElement("div", { className: "animate-fade-in" }, 
+            React.createElement("label", { htmlFor: "custom-alarm-url", className: "block text-sm font-medium text-text-secondary" }, "Custom Sound URL"), 
+            React.createElement("input", {
+              type: "url",
+              id: "custom-alarm-url",
+              value: settings.customAlarmSoundUrl,
+              onChange: e => onSettingsChange({ ...settings, customAlarmSoundUrl: e.target.value }),
+              placeholder: "https://example.com/sound.mp3",
+              className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none"
+            })
+          )
+        ), 
+        React.createElement("div", { className: "pt-4 mt-4 border-t border-surface" }, 
+            React.createElement("h3", { className: "text-md font-semibold text-text-primary" }, "Calendar Integration"), 
+            React.createElement("div", { className: "mt-2" }, 
+                React.createElement("label", { htmlFor: "ical-url", className: "block text-sm font-medium text-text-secondary" }, "iCal Feed URL"), 
+                React.createElement("input", {
+                  type: "url",
+                  id: "ical-url",
+                  value: settings.icalUrl,
+                  onChange: e => onSettingsChange({ ...settings, icalUrl: e.target.value }),
+                  placeholder: "https://your-calendar-provider.com/...",
+                  className: "mt-1 w-full p-2 rounded-md bg-background border border-surface focus:ring-2 focus:ring-primary outline-none"
+                }), 
+                React.createElement("p", { className: "text-xs text-text-secondary/70 mt-1" }, "Provide a public iCal URL to see your upcoming events.")
+            )
+        )
+      )
+    )
+  );
+};
+// --- END OF components/SettingsModal.tsx ---
+
+// --- START OF components/Events.tsx ---
+const Events = ({ events, loading, error, icalUrl }) => {
+    const formatDate = (date) => {
+        return date.toLocaleDateString(undefined, {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+
+    const formatEventTime = (date) => {
+        return date.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    const groupEventsByDate = (events) => {
+        const groups = {};
+        events.forEach(event => {
+            const dateKey = formatDate(event.start);
+            if (!groups[dateKey]) {
+                groups[dateKey] = [];
+            }
+            groups[dateKey].push(event);
+        });
+        return groups;
+    };
+
+    const groupedEvents = groupEventsByDate(events);
+
+    if (!icalUrl) {
+        return (
+            React.createElement("div", { className: "text-center py-16 text-text-secondary animate-fade-in" }, 
+                React.createElement(Icon, { name: "calendar", className: "w-12 h-12 mx-auto" }), 
+                React.createElement("p", { className: "mt-4" }, "No iCal feed URL provided."), 
+                React.createElement("p", { className: "text-sm" }, "Please add one in the settings to see your upcoming events.")
+            )
+        );
+    }
+    
+    if (loading) {
+        return (
+            React.createElement("div", { className: "text-center py-16 text-text-secondary animate-fade-in" }, 
+                 React.createElement("div", { className: "w-8 h-8 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin" }), 
+                 React.createElement("p", { className: "mt-4" }, "Loading events...")
+            )
+        );
+    }
+
+    if (error) {
+        return (
+             React.createElement("div", { className: "text-center py-16 text-red-400 animate-fade-in" }, 
+                React.createElement("p", null, "Error loading events."), 
+                React.createElement("p", { className: "text-sm" }, error)
+            )
+        );
+    }
+    
+    return (
+        React.createElement("div", { className: "p-4 md:p-6 space-y-6 animate-fade-in" }, 
+            Object.keys(groupedEvents).length > 0 ? (
+                Object.entries(groupedEvents).map(([date, dateEvents]) => (
+                    React.createElement("div", { key: date }, 
+                        React.createElement("h2", { className: "text-lg font-semibold text-text-primary mb-2 sticky top-0 bg-background/80 backdrop-blur-sm py-2" }, date), 
+                        React.createElement("div", { className: "space-y-3" }, 
+                            dateEvents.map(event => (
+                                React.createElement("div", { key: event.uid, className: "bg-surface p-4 rounded-lg flex items-start gap-4" }, 
+                                    React.createElement("div", { className: "font-mono text-center" }, 
+                                        React.createElement("p", { className: "text-lg font-bold text-primary" }, formatEventTime(event.start))
+                                    ), 
+                                    React.createElement("div", { className: "border-l-2 border-primary/20 pl-4 flex-1" }, 
+                                        React.createElement("p", { className: "font-semibold text-text-primary" }, event.summary), 
+                                        React.createElement("p", { className: "text-sm text-text-secondary" }, `${formatEventTime(event.start)} - ${formatEventTime(event.end)}`)
+                                    )
+                                )
+                            ))
+                        )
+                    )
+                ))
+            ) : (
+                 React.createElement("div", { className: "text-center py-16 text-text-secondary" }, 
+                    React.createElement("p", null, "No upcoming events found.")
+                )
+            )
+        )
+    );
+};
+// --- END OF components/Events.tsx ---
+
+// --- START OF App.tsx ---
+const App = () => {
+    const [settings, setSettings] = useLocalStorage('geeclock-settings', INITIAL_SETTINGS);
+    const [timers, setTimers] = useLocalStorage('geeclock-timers', []);
+    const [activeTab, setActiveTab] = useState('clock');
+    const [isAddTimerModalOpen, setAddTimerModalOpen] = useState(false);
+    const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
+    
+    const [events, setEvents] = useState([]);
+    const [eventsLoading, setEventsLoading] = useState(false);
+    const [eventsError, setEventsError] = useState(null);
+
+    useEventNotifications(events);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const theme = THEMES[settings.theme]?.[settings.darkMode ? 'dark' : 'light'] || THEMES.default.dark;
+      
+        Object.entries(theme).forEach(([key, value]) => {
+            root.style.setProperty(`--color-${key}`, value);
+        });
+      
+        if (settings.darkMode) {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+    }, [settings]);
+
+    useEffect(() => {
+        if (!settings.icalUrl) {
+            setEvents([]);
+            return;
+        }
+
+        const fetchAndParseEvents = async () => {
+            setEventsLoading(true);
+            setEventsError(null);
+            try {
+                const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(settings.icalUrl)}`);
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch calendar data (status: ${response.status}). Check URL and CORS policy.`);
+                }
+                const data = await response.text();
+                const allEvents = parseICal(data);
+                const upcomingEvents = allEvents.filter(e => e.end >= new Date());
+                setEvents(upcomingEvents);
+            } catch (error) {
+                console.error("Error fetching iCal feed:", error);
+                setEventsError(error instanceof Error ? error.message : 'An unknown error occurred.');
+                setEvents([]);
+            } finally {
+                setEventsLoading(false);
+            }
+        };
+
+        fetchAndParseEvents();
+    }, [settings.icalUrl]);
+
+    const handleAddTimer = useCallback(({ label, duration }) => {
+        const newTimer = {
             id: Date.now(),
             label,
             duration,
             remaining: duration,
             isRunning: false,
-          };
-          setTimers(prev => [...prev, newTimer]);
+            startTime: null,
         };
+        setTimers(prev => [...prev, newTimer]);
+    }, [setTimers]);
 
-        const handleDeleteTimer = (id) => {
-          setTimers(prev => prev.filter(t => t.id !== id));
-        };
-        
-         const handleToggleTimer = (id) => {
-          setTimers(timers => timers.map(timer => {
+    const handleDeleteTimer = useCallback((id) => {
+        setTimers(prev => prev.filter(t => t.id !== id));
+    }, [setTimers]);
+    
+    const handleToggleTimer = useCallback((id) => {
+        setTimers(currentTimers => currentTimers.map(timer => {
             if (timer.id !== id) return timer;
             
+            if (!timer.isRunning && timer.remaining <= 0) {
+                return timer;
+            }
+
             const isRunning = !timer.isRunning;
             if (isRunning) {
-              const startTime = Date.now() - ((timer.duration - timer.remaining) * 1000);
-              return { ...timer, isRunning: true, startTime };
+                const startTime = Date.now() - ((timer.duration - timer.remaining) * 1000);
+                return { ...timer, isRunning: true, startTime };
             } else {
-              const elapsed = (Date.now() - timer.startTime) / 1000;
-              const remaining = timer.duration - elapsed;
-              return { ...timer, isRunning: false, remaining: Math.max(0, remaining) };
+                if (!timer.startTime) return timer;
+                const elapsed = (Date.now() - timer.startTime) / 1000;
+                const remaining = timer.duration - elapsed;
+                return { ...timer, isRunning: false, remaining: Math.max(0, remaining), startTime: null };
             }
-          }));
-        };
+        }));
+    }, [setTimers]);
 
-        const handleResetTimer = (id) => {
-          setTimers(timers => timers.map(timer => {
+    const handleResetTimer = useCallback((id) => {
+        setTimers(currentTimers => currentTimers.map(timer => {
             if (timer.id === id) {
-              return { ...timer, isRunning: false, remaining: timer.duration };
+                return { ...timer, isRunning: false, remaining: timer.duration, startTime: null };
             }
             return timer;
-          }));
-        };
+        }));
+    }, [setTimers]);
 
+    const alarmSoundUrl = settings.alarmSound === 'custom'
+        ? settings.customAlarmSoundUrl
+        : (ALARM_SOUNDS[settings.alarmSound]?.url || ALARM_SOUNDS.default.url);
 
-        const MainContent = () => {
-            switch(activeTab) {
-                case 'clock': return <Clock />;
-                case 'timers': {
-                    const alarmSoundUrl = settings.alarmSound === 'custom'
-                        ? settings.customAlarmSoundUrl
-                        : (ALARM_SOUNDS[settings.alarmSound]?.url || ALARM_SOUNDS.default.url);
-                    return <TimerList timers={timers} onAdd={() => setAddTimerModalOpen(true)} onDelete={handleDeleteTimer} onToggle={handleToggleTimer} onReset={handleResetTimer} alarmSoundUrl={alarmSoundUrl} />;
-                }
-                default: return <Clock />;
-            }
-        };
+    return (
+        React.createElement("div", { className: "min-h-screen flex flex-col max-w-3xl mx-auto" }, 
+            React.createElement(Header, { 
+                onSettingsClick: () => setSettingsModalOpen(true), 
+                showDateTime: settings.showDateTimeInHeader 
+            }), 
+            React.createElement("nav", { className: "flex justify-center p-2" }, 
+                React.createElement("div", { className: "flex items-center gap-2 bg-surface p-1.5 rounded-full animate-fade-in" }, 
+                    React.createElement("button", { onClick: () => setActiveTab('clock'), className: `px-4 py-1.5 text-sm font-semibold rounded-full flex items-center gap-2 ${activeTab === 'clock' ? 'bg-primary text-white' : 'hover:bg-background/50'}` }, 
+                        React.createElement(Icon, { name: "clock", className: "w-5 h-5" }), "Clock"
+                    ), 
+                    React.createElement("button", { onClick: () => setActiveTab('timers'), className: `px-4 py-1.5 text-sm font-semibold rounded-full flex items-center gap-2 ${activeTab === 'timers' ? 'bg-primary text-white' : 'hover:bg-background/50'}` }, 
+                        React.createElement(Icon, { name: "timer", className: "w-5 h-5" }), "Timers"
+                    ), 
+                    React.createElement("button", { onClick: () => setActiveTab('events'), className: `px-4 py-1.5 text-sm font-semibold rounded-full flex items-center gap-2 ${activeTab === 'events' ? 'bg-primary text-white' : 'hover:bg-background/50'}` }, 
+                        React.createElement(Icon, { name: "calendar", className: "w-5 h-5" }), "Events"
+                    )
+                )
+            ), 
+            React.createElement("main", { className: "flex-1" }, 
+                activeTab === 'clock' && React.createElement(Clock, null), 
+                activeTab === 'timers' && (
+                    React.createElement(TimerList, { 
+                        timers: timers, 
+                        onAdd: () => setAddTimerModalOpen(true), 
+                        onDelete: handleDeleteTimer, 
+                        onToggle: handleToggleTimer, 
+                        onReset: handleResetTimer, 
+                        alarmSoundUrl: alarmSoundUrl 
+                    })
+                ), 
+                activeTab === 'events' && (
+                    React.createElement(Events, { 
+                        events: events,
+                        loading: eventsLoading,
+                        error: eventsError,
+                        icalUrl: settings.icalUrl
+                    })
+                )
+            ), 
+            activeTab === 'timers' && (
+                React.createElement("div", { className: "fixed bottom-6 right-6 z-20" }, 
+                    React.createElement("button", { onClick: () => setAddTimerModalOpen(true), className: "p-4 bg-secondary text-white rounded-full shadow-lg hover:scale-105 transition-transform", "aria-label": "Add Timer" }, 
+                        React.createElement(Icon, { name: "plus", className: "w-7 h-7" })
+                    )
+                )
+            ), 
+            React.createElement(AddTimerModal, { 
+                isOpen: isAddTimerModalOpen, 
+                onClose: () => setAddTimerModalOpen(false), 
+                onAddTimer: handleAddTimer
+            }), 
+            React.createElement(SettingsModal, { 
+                isOpen: isSettingsModalOpen, 
+                onClose: () => setSettingsModalOpen(false), 
+                settings: settings, 
+                onSettingsChange: setSettings 
+            })
+        )
+    );
+};
+// --- END OF App.tsx ---
 
-        return (
-          <div className="min-h-screen flex flex-col max-w-3xl mx-auto">
-            <Header onSettingsClick={() => setSettingsModalOpen(true)} onChatClick={() => setChatOpen(true)} hasApiKey={!!settings.apiKey} showDateTime={settings.showDateTimeInHeader} />
-            
-            <nav className="flex justify-center p-2">
-              <div className="flex items-center gap-2 bg-surface p-1.5 rounded-full animate-fade-in">
-                <button onClick={() => setActiveTab('clock')} className={`px-4 py-1.5 text-sm font-semibold rounded-full ${activeTab === 'clock' ? 'bg-primary text-white' : 'hover:bg-background/50'}`}>
-                  <Icon name="clock" className="w-5 h-5 inline-block mr-2" />Clock
-                </button>
-                <button onClick={() => setActiveTab('timers')} className={`px-4 py-1.5 text-sm font-semibold rounded-full ${activeTab === 'timers' ? 'bg-primary text-white' : 'hover:bg-background/50'}`}>
-                  <Icon name="timer" className="w-5 h-5 inline-block mr-2" />Timers
-                </button>
-              </div>
-            </nav>
+// --- START OF index.tsx ---
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
 
-            <main className="flex-1">
-              <MainContent />
-            </main>
-            
-            {activeTab === 'timers' && (
-                <div className="fixed bottom-6 right-6">
-                    <button onClick={() => setAddTimerModalOpen(true)} className="p-4 bg-secondary text-white rounded-full shadow-lg hover:scale-105 transition-transform" aria-label="Add Timer">
-                        <Icon name="plus" className="w-7 h-7" />
-                    </button>
-                </div>
-            )}
-            
-            <AddTimerModal isOpen={isAddTimerModalOpen} onClose={() => setAddTimerModalOpen(false)} onAddTimer={handleAddTimer} />
-            <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setSettingsModalOpen(false)} settings={settings} onSettingsChange={setSettings} />
-            <ChatBot isOpen={isChatOpen} onClose={() => setChatOpen(false)} useSearch={settings.useSearch} apiKey={settings.apiKey} />
-          </div>
-        );
-      };
-
-      ReactDOM.render(<App />, document.getElementById('root'));
-
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  React.createElement(React.StrictMode, null, 
+    React.createElement(App, null)
+  )
+);
+// --- END OF index.tsx ---
     </script>
   </body>
 </html>
